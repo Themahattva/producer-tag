@@ -1,0 +1,66 @@
+{
+  "name": "producer-tag-on-push",
+  "displayName": "Producer Tag on Push",
+  "description": "Plays your custom producer tag ('MS on the Beat, Yo!') whenever you push code to GitHub.",
+  "version": "1.0.0",
+  "publisher": "themahattva",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "producerTag.play",
+        "title": "Producer Tag: Test Play Sound",
+        "icon": "$(play)"
+      },
+      {
+        "command": "producerTag.toggle",
+        "title": "Producer Tag: Toggle On/Off"
+      },
+      {
+        "command": "producerTag.openAudio",
+        "title": "Producer Tag: Open Audio File Location"
+      }
+    ],
+    "configuration": {
+      "title": "Producer Tag",
+      "properties": {
+        "producerTag.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable the producer tag audio on push."
+        },
+        "producerTag.audioPath": {
+          "type": "string",
+          "default": "/Users/mahattava/Developer/PRODUCER TAG/MS on the Beat, Yo.wav",
+          "description": "Path to the audio file to play."
+        },
+        "producerTag.volume": {
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0,
+          "maximum": 2.0,
+          "description": "Playback volume (0.0 to 2.0)."
+        },
+        "producerTag.githubOnly": {
+          "type": "boolean",
+          "default": true,
+          "description": "Only play tag when pushing to GitHub remotes."
+        },
+        "producerTag.notifyOnPush": {
+          "type": "boolean",
+          "default": true,
+          "description": "Display a notification banner when pushing."
+        }
+      }
+    }
+  }
+}

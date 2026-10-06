@@ -1,0 +1,86 @@
+#!/bin/bash
+# ==============================================================================
+# Global Git pre-push hook: Producer Tag on Push
+# Plays "MS on the Beat, Yo!" whenever changes are pushed to GitHub.
+# ==============================================================================
+
+# Read stdin (format: <local ref> <local sha1> <remote ref> <remote sha1>)
+STDIN_DATA=$(cat)
+
+# If no refs are being pushed (e.g. everything up to date), do not play
+if [ -z "$STDIN_DATA" ]; then
+    exit 0
+fi
+
+REMOTE_NAME="$1"
+REMOTE_URL="$2"
+
+# Fallback: if REMOTE_URL is empty, look up in git config
+if [ -z "$REMOTE_URL" ]; then
+    REMOTE_URL=$(git config --get "remote.${REMOTE_NAME}.url" 2>/dev/null)
+fi
+
+# Check if feature is globally enabled (default: true)
+ENABLED=$(git config --bool --get producer-tag.enabled 2>/dev/null)
+if [ "$ENABLED" = "false" ]; then
+    # Still chain to local repository hook if present
+    GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
+    if [ -n "$GIT_DIR" ] && [ -x "$GIT_DIR/hooks/pre-push" ] && [ "$GIT_DIR/hooks/pre-push" != "$0" ]; then
+        printf "%s\n" "$STDIN_DATA" | "$GIT_DIR/hooks/pre-push" "$REMOTE_NAME" "$REMOTE_URL"
+        exit $?
+    fi
+    exit 0
+fi
+
+# Check GitHub matching
+GITHUB_ONLY=$(git config --bool --get producer-tag.github-only 2>/dev/null)
+MATCH=0
+if [ "$GITHUB_ONLY" = "false" ]; then
+    MATCH=1
+else
+    case "$REMOTE_URL" in
+        *github.com*|*github:*)
+            MATCH=1
+            ;;
+        *)
+            MATCH=0
+            ;;
+    esac
+fi
+
+if [ "$MATCH" -eq 1 ]; then
+    # Get audio file path (fallback to default)
+    AUDIO_FILE=$(git config --get producer-tag.audio-path 2>/dev/null)
+    if [ -z "$AUDIO_FILE" ] || [ ! -f "$AUDIO_FILE" ]; then
+        AUDIO_FILE="/Users/mahattava/Developer/PRODUCER TAG/MS on the Beat, Yo.wav"
+    fi
+
+    # Volume (0.0 to 1.0)
+    VOLUME=$(git config --get producer-tag.volume 2>/dev/null)
+    if [ -z "$VOLUME" ]; then
+        VOLUME="1.0"
+    fi
+
+    if [ -f "$AUDIO_FILE" ]; then
+        # Informative banner in terminal
+        echo "🎧 [PRODUCER TAG] 'MS on the Beat, Yo!' dropping now... 🚀" >&2
+
+        # Play sound asynchronously in background via macOS native afplay
+        /usr/bin/afplay -v "$VOLUME" "$AUDIO_FILE" &
+
+        # Trigger macOS native notification if enabled
+        NOTIFY=$(git config --bool --get producer-tag.notify 2>/dev/null)
+        if [ "$NOTIFY" != "false" ]; then
+            /usr/bin/osascript -e 'display notification "MS on the Beat, Yo! 🚀" with title "Producer Tag Dropped" subtitle "Pushing to GitHub"' &>/dev/null &
+        fi
+    fi
+fi
+
+# Chain to local repository hook if one exists
+GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
+if [ -n "$GIT_DIR" ] && [ -x "$GIT_DIR/hooks/pre-push" ] && [ "$GIT_DIR/hooks/pre-push" != "$0" ]; then
+    printf "%s\n" "$STDIN_DATA" | "$GIT_DIR/hooks/pre-push" "$REMOTE_NAME" "$REMOTE_URL"
+    exit $?
+fi
+
+exit 0
